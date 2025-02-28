@@ -4,7 +4,7 @@ const cors = require("cors");
 
 const app = express();
 dotenv.config();
-
+import cookieParser from 'cookie-parser';
 app.use(cors());
 app.use(express.json()); 
 app.get("/", (req, res) => {
