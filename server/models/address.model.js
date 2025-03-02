@@ -1,3 +1,5 @@
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/connectDB.js';
 import UserModel from './user.model.js'; // Import User model for association
 
 const AddressModel = sequelize.define('Address', {

@@ -1,4 +1,5 @@
 import { DataTypes } from 'sequelize';
+import sequelize from '../config/connectDB.js';
 
 const User = sequelize.define('User', {
     id: {
@@ -65,7 +66,7 @@ const User = sequelize.define('User', {
         defaultValue: "USER"
     }
 }, {
-    timestamps: true, 
+    timestamps: true,  // Automatically adds createdAt and updatedAt columns
     tableName: 'users'
 });
 
