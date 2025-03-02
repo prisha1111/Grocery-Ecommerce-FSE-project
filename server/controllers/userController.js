@@ -1,5 +1,8 @@
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
+import sendEmail from "../config/sendEmail.js";
+import verifyEmailTemplate from "../utils/verifyEmailTemplate.js";
+import UserModel from "../models/user.model.js";
 
 const generateAccessToken = (id) => jwt.sign({ id }, process.env.SECRET_KEY_ACCESS_TOKEN, { expiresIn: "1h" });
 const generateRefreshToken = (id) => jwt.sign({ id }, process.env.SECRET_KEY_REFRESH_TOKEN, { expiresIn: "7d" });
@@ -14,6 +17,9 @@ export async function registerUserController(req, res) {
 
         const hashedPassword = await bcryptjs.hash(password, 10);
         const newUser = await UserModel.create({ name, email, password: hashedPassword });
+
+        const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?code=${newUser.id}`;
+        await sendEmail({ sendTo: email, subject: "Verify Your Email", html: verifyEmailTemplate({ name, url: verifyUrl }) });
 
 
         res.json({ message: "User registered successfully. Check your email to verify your account.", success: true });

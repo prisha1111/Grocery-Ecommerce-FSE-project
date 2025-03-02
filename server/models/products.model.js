@@ -1,4 +1,7 @@
 import { DataTypes } from 'sequelize';
+import sequelize from '../config/connectDB.js';
+import CategoryModel from './category.model.js';
+import SubCategoryModel from './subCategory.model.js';
 
 const ProductModel = sequelize.define('Product', {
     id: {
