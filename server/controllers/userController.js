@@ -64,3 +64,16 @@ export async function logoutController(req, res) {
         res.status(500).json({ message: error.message });
     }
 }
+
+export async function verifyEmailController(req, res) {
+    try {
+        const { code } = req.body;
+        const user = await UserModel.findByPk(code);
+        if (!user) return res.status(400).json({ message: "Invalid verification code" });
+
+        await user.update({ verify_email: true });
+        res.json({ message: "Email verified successfully!" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
