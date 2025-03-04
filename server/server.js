@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import sequelize from './config/connectDB.js';
 import userRouter from './route/user.route.js';
+import cartRoutes from "./route/cart.routes.js";
 
 // Initialize Express
 const app = express();
@@ -32,6 +33,7 @@ app.get("/", (req, res) => {
 });
 
 // Routes
+app.use("/api/cart", cartRoutes);
 app.use('/api/user', userRouter);
 
 // Sync Database & Start Server
