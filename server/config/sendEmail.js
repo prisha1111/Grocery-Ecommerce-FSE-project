@@ -5,7 +5,7 @@ dotenv.config();
 
 if (!process.env.RESEND_API) {
     console.error("❌ ERROR: Provide RESEND_API inside the .env file");
-    process.exit(1); // Stop execution if API key is missing
+    process.exit(1);
 }
 
 const resend = new Resend(process.env.RESEND_API);

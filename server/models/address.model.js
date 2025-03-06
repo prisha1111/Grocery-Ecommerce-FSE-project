@@ -1,6 +1,6 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/connectDB.js';
-import UserModel from './user.model.js'; // Import User model for association
+import UserModel from './user.model.js';
 
 const AddressModel = sequelize.define('Address', {
     id: {
@@ -38,17 +38,16 @@ const AddressModel = sequelize.define('Address', {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: UserModel,  // Foreign key reference to User table
+            model: UserModel,
             key: 'id'
         },
         onDelete: 'CASCADE'
     }
 }, {
-    timestamps: true,  // Adds createdAt and updatedAt fields
+    timestamps: true,
     tableName: 'addresses'
 });
 
-// Define relationship
 AddressModel.belongsTo(UserModel, { foreignKey: 'userId', onDelete: 'CASCADE' });
 UserModel.hasMany(AddressModel, { foreignKey: 'userId', onDelete: 'CASCADE' });
 

@@ -10,7 +10,6 @@ const Cart = sequelize.define("Cart", {
     quantity: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 }
 });
 
-// Relationships
 Cart.belongsTo(User, { foreignKey: "userId" });
 Cart.belongsTo(Product, { foreignKey: "productId" });
 
