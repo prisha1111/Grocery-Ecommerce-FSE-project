@@ -9,35 +9,29 @@ import sequelize from './config/connectDB.js';
 import userRouter from './route/user.route.js';
 import cartRoutes from "./route/cart.routes.js";
 
-// Initialize Express
 const app = express();
 
-// Middleware
 app.use(cors({
     credentials: true,
     origin: process.env.FRONTEND_URL
 }));
 app.use(express.json());
 app.use(cookieParser());
-app.use(morgan("dev")); // ✅ Fixed morgan issue
+app.use(morgan("dev"));
 app.use(helmet({
     crossOriginResourcePolicy: false
 }));
 
-// Set PORT properly
 const PORT = process.env.PORT || 8080;
 
-// Test Route
 app.get("/", (req, res) => {
     res.json({ message: `Server is running on port ${PORT}` });
 });
 
-// Routes
 app.use("/api/cart", cartRoutes);
 app.use('/api/user', userRouter);
 
-// Sync Database & Start Server
-sequelize.sync({ alter: true }) // Sync models
+sequelize.sync({ alter: true })
     .then(() => {
         console.log('Database synced');
         app.listen(PORT, () => {

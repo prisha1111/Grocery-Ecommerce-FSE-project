@@ -1,9 +1,8 @@
 import jwt from "jsonwebtoken";
-import UserModel from "../models/user.model.js"; // Import the User model
+import UserModel from "../models/user.model.js";
 
 const auth = async (request, response, next) => {
     try {
-        // Extract token from cookies or Authorization header
         const token = request.cookies.accessToken || request?.headers?.authorization?.split(" ")[1];
 
         if (!token) {
@@ -14,7 +13,6 @@ const auth = async (request, response, next) => {
             });
         }
 
-        // Verify JWT token
         const decoded = jwt.verify(token, process.env.SECRET_KEY_ACCESS_TOKEN);
         if (!decoded) {
             return response.status(401).json({
@@ -24,7 +22,6 @@ const auth = async (request, response, next) => {
             });
         }
 
-        // Find user in MySQL database
         const user = await UserModel.findByPk(decoded.id);
         if (!user) {
             return response.status(401).json({
@@ -34,7 +31,6 @@ const auth = async (request, response, next) => {
             });
         }
 
-        // Attach user ID to request object
         request.userId = user.id;
         next();
 
