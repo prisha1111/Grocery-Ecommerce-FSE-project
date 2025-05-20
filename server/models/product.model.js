@@ -1,64 +1,66 @@
-const { db } = require("../config/db")
-const fs = require("fs")
-const path = require("path")
+const { Product } = require("../config/init-db.js");
+const { Op } = require("sequelize");
+const fs = require("fs");
+const path = require("path");
 
 const ProductModel = {
   findAll: async (filters = {}) => {
-    const { category, search } = filters
-
-    let query = "SELECT * FROM products"
-    const queryParams = []
+    const { category, search } = filters;
+    const where = {};
 
     if (category) {
-      query += " WHERE category = $1"
-      queryParams.push(category)
+      where.category = category;
     }
 
     if (search) {
-      if (category) {
-        query += " AND (name ILIKE $2 OR description ILIKE $2)"
-        queryParams.push(`%${search}%`)
-      } else {
-        query += " WHERE name ILIKE $1 OR description ILIKE $1"
-        queryParams.push(`%${search}%`)
-      }
+      where[Op.or] = [
+        { name: { [Op.iLike]: `%${search}%` } }, // Use Op.like if iLike doesn't work in MySQL
+        { description: { [Op.iLike]: `%${search}%` } },
+      ];
     }
 
-    query += " ORDER BY created_at DESC"
+    const products = await Product.findAll({
+      where,
+      order: [["created_at", "DESC"]],
+    });
 
-    const result = await db.query(query, queryParams)
-    return result.rows
+    return products;
   },
 
   findById: async (id) => {
-    const result = await db.query("SELECT * FROM products WHERE id = $1", [id])
-    return result.rows[0]
+    const product = await Product.findByPk(id);
+    return product;
   },
 
   create: async (productData) => {
-    const { name, description, price, image, stock, category } = productData
+    const { name, description, price, image, stock = 0, category } = productData;
 
-    const result = await db.query(
-      "INSERT INTO products (name, description, price, image, stock, category) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [name, description, price, image, stock || 0, category],
-    )
+    const product = await Product.create({
+      name,
+      description,
+      price,
+      image,
+      stock,
+      category,
+    });
 
-    return result.rows[0]
+    return product;
   },
 
   update: async (id, productData) => {
-    const { name, description, price, image, stock, category } = productData
+    const product = await Product.findByPk(id);
+    if (!product) return null;
 
-    const result = await db.query(
-      "UPDATE products SET name = $1, description = $2, price = $3, image = $4, stock = $5, category = $6 WHERE id = $7 RETURNING *",
-      [name, description, price, image, stock, category, id],
-    )
+    await product.update(productData);
 
-    return result.rows[0]
+    return product;
   },
 
   delete: async (id) => {
-    await db.query("DELETE FROM products WHERE id = $1", [id])
+    const product = await Product.findByPk(id);
+    if (!product) return;
+
+    await product.destroy();
   },
 
   deleteImage: async (imagePath) => {
@@ -67,13 +69,17 @@ const ProductModel = {
       !imagePath.includes("default") &&
       fs.existsSync(path.join(__dirname, "..", imagePath.replace("/uploads/", "uploads/")))
     ) {
-      fs.unlinkSync(path.join(__dirname, "..", imagePath.replace("/uploads/", "uploads/")))
+      fs.unlinkSync(path.join(__dirname, "..", imagePath.replace("/uploads/", "uploads/")));
     }
   },
 
   updateStock: async (id, quantity) => {
-    await db.query("UPDATE products SET stock = stock - $1 WHERE id = $2", [quantity, id])
-  },
-}
+    const product = await Product.findByPk(id);
+    if (!product) return;
 
-module.exports = ProductModel
+    product.stock -= quantity;
+    await product.save();
+  },
+};
+
+module.exports = ProductModel;

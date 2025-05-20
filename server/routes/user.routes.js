@@ -1,7 +1,7 @@
 const express = require("express")
 const router = express.Router()
-const UserController = require("../controllers/user.controller")
-const { authenticateToken } = require("../config/jwt")
+const UserController = require("../controllers/user.controller.js")
+const { authenticateToken } = require("../config/jwt.js")
 
 router.post("/register", UserController.register)
 

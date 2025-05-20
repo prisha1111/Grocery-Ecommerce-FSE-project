@@ -1,100 +1,114 @@
-const { db } = require("../config/db")
+const { Order, OrderItem, User, Product } = require("../config/init-db.js");
+const { Op } = require("sequelize");
 
 const OrderModel = {
   create: async (orderData) => {
-    const { userId, totalAmount, name, address, phone, pincode, paymentMethod } = orderData
+    const { userId, totalAmount, name, address, phone, pincode, paymentMethod } = orderData;
 
-    const result = await db.query(
-      "INSERT INTO orders (user_id, total_amount, name, address, phone, pincode, payment_method) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-      [userId, totalAmount, name, address, phone, pincode, paymentMethod],
-    )
+    const newOrder = await Order.create({
+      user_id: userId,
+      total_amount: totalAmount,
+      name,
+      address,
+      phone,
+      pincode,
+      payment_method: paymentMethod,
+    });
 
-    return result.rows[0]
+    return newOrder;
   },
 
   addOrderItem: async (orderItem) => {
-    const { orderId, productId, quantity, price } = orderItem
+    const { orderId, productId, quantity, price } = orderItem;
 
-    await db.query("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)", [
-      orderId,
-      productId,
+    await OrderItem.create({
+      order_id: orderId,
+      product_id: productId,
       quantity,
       price,
-    ])
+    });
   },
 
   findAll: async (filters = {}) => {
-    const { status, search } = filters
-
-    let query = `
-      SELECT o.*, u.name as user_name, u.email as user_email
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-    `
-    const queryParams = []
+    const { status, search } = filters;
+    const where = {};
+    const userWhere = {};
 
     if (status) {
-      query += " WHERE o.status = $1"
-      queryParams.push(status)
+      where.status = status;
     }
 
     if (search) {
-      if (status) {
-        query +=
-          " AND (o.name ILIKE $2 OR o.address ILIKE $2 OR o.phone ILIKE $2 OR u.name ILIKE $2 OR u.email ILIKE $2)"
-        queryParams.push(`%${search}%`)
-      } else {
-        query +=
-          " WHERE o.name ILIKE $1 OR o.address ILIKE $1 OR o.phone ILIKE $1 OR u.name ILIKE $1 OR u.email ILIKE $1"
-        queryParams.push(`%${search}%`)
-      }
+      userWhere[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+      ];
+
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { address: { [Op.like]: `%${search}%` } },
+        { phone: { [Op.like]: `%${search}%` } },
+      ];
     }
 
-    query += " ORDER BY o.created_at DESC"
+    const orders = await Order.findAll({
+      where,
+      include: {
+        model: User,
+        attributes: ["name", "email"],
+        where: Object.keys(userWhere).length ? userWhere : undefined,
+      },
+      order: [["created_at", "DESC"]],
+    });
 
-    const result = await db.query(query, queryParams)
-    return result.rows
+    return orders;
   },
 
   findByUserId: async (userId) => {
-    const result = await db.query("SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC", [userId])
-    return result.rows
+    const orders = await Order.findAll({
+      where: { user_id: userId },
+      order: [["created_at", "DESC"]],
+    });
+    return orders;
   },
 
   findById: async (id) => {
-    const result = await db.query(
-      `
-      SELECT o.*, u.name as user_name, u.email as user_email
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      WHERE o.id = $1
-    `,
-      [id],
-    )
-    return result.rows[0]
+    const order = await Order.findOne({
+      where: { id },
+      include: {
+        model: User,
+        attributes: ["name", "email"],
+      },
+    });
+
+    return order;
   },
 
   findOrderItems: async (orderId) => {
-    const result = await db.query(
-      `
-      SELECT oi.*, p.name as product_name, p.image as product_image
-      FROM order_items oi
-      JOIN products p ON oi.product_id = p.id
-      WHERE oi.order_id = $1
-    `,
-      [orderId],
-    )
-    return result.rows
+    const items = await OrderItem.findAll({
+      where: { order_id: orderId },
+      include: {
+        model: Product,
+        attributes: ["name", "image"],
+      },
+    });
+
+    return items;
   },
 
   updateStatus: async (id, status) => {
-    const result = await db.query("UPDATE orders SET status = $1 WHERE id = $2 RETURNING *", [status, id])
-    return result.rows[0]
+    const order = await Order.findByPk(id);
+    if (!order) return null;
+
+    order.status = status;
+    await order.save();
+
+    return order;
   },
 
   delete: async (id) => {
-    await db.query("DELETE FROM orders WHERE id = $1", [id])
+    await Order.destroy({ where: { id } });
   },
-}
+};
 
-module.exports = OrderModel
+module.exports = OrderModel;
