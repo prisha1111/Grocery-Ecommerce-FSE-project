@@ -1,33 +1,44 @@
-const { db } = require("../config/db")
+const { Product, Order, OrderItem, User } = require('../config/init-db.js');
+const { sequelize }=require('../config/db.js');
+const { QueryTypes } = require('sequelize');
+const { Op } = require("sequelize");
 
 const DashboardModel = {
   getTotalProducts: async () => {
-    const result = await db.query("SELECT COUNT(*) FROM products")
-    return Number.parseInt(result.rows[0].count)
+    const count = await Product.count();
+    return count;
   },
 
   getTotalOrders: async () => {
-    const result = await db.query("SELECT COUNT(*) FROM orders")
-    return Number.parseInt(result.rows[0].count)
+    const count = await Order.count();
+    return count;
   },
 
   getTotalRevenue: async () => {
-    const result = await db.query("SELECT SUM(total_amount) FROM orders WHERE status != 'cancelled'")
-    return Number.parseFloat(result.rows[0].sum || 0)
+    const result = await Order.findOne({
+      attributes: [
+        [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalRevenue']
+      ],
+      where: {
+        status: { [Op.ne]: 'cancelled' }
+      },
+      raw: true,
+    });
+    return parseFloat(result.totalRevenue || 0);
   },
 
   getOrdersByStatus: async () => {
-    const result = await db.query(`
-      SELECT status, COUNT(*) 
-      FROM orders 
-      GROUP BY status
-    `)
-    return result.rows
+    const results = await Order.findAll({
+      attributes: ['status', [sequelize.fn('COUNT', sequelize.col('status')), 'count']],
+      group: ['status'],
+      raw: true,
+    });
+    return results;
   },
 
   getTopProducts: async () => {
-    const result = await db.query(`
-      SELECT p.id, p.name, p.image, SUM(oi.quantity) as total_sold
+    const results = await sequelize.query(`
+      SELECT p.id, p.name, p.image, SUM(oi.quantity) AS total_sold
       FROM products p
       JOIN order_items oi ON p.id = oi.product_id
       JOIN orders o ON oi.order_id = o.id
@@ -35,47 +46,51 @@ const DashboardModel = {
       GROUP BY p.id, p.name, p.image
       ORDER BY total_sold DESC
       LIMIT 5
-    `)
-    return result.rows
+    `, { type: QueryTypes.SELECT });
+
+    return results;
   },
 
   getRecentOrders: async () => {
-    const result = await db.query(`
-      SELECT o.*, u.name as user_name
+    const results = await sequelize.query(`
+      SELECT o.*, u.name AS user_name
       FROM orders o
       JOIN users u ON o.user_id = u.id
       ORDER BY o.created_at DESC
       LIMIT 5
-    `)
-    return result.rows
+    `, { type: QueryTypes.SELECT });
+
+    return results;
   },
 
   getSalesByCategory: async () => {
-    const result = await db.query(`
-      SELECT p.category, SUM(oi.quantity * oi.price) as total_sales
+    const results = await sequelize.query(`
+      SELECT p.category, SUM(oi.quantity * oi.price) AS total_sales
       FROM products p
       JOIN order_items oi ON p.id = oi.product_id
       JOIN orders o ON oi.order_id = o.id
       WHERE o.status != 'cancelled'
       GROUP BY p.category
       ORDER BY total_sales DESC
-    `)
-    return result.rows
+    `, { type: QueryTypes.SELECT });
+
+    return results;
   },
 
   getMonthlySales: async () => {
-    const result = await db.query(`
+    const results = await sequelize.query(`
       SELECT 
-        TO_CHAR(o.created_at, 'YYYY-MM') as month,
-        SUM(o.total_amount) as total_sales
+        DATE_FORMAT(o.created_at, '%Y-%m') AS month,
+        SUM(o.total_amount) AS total_sales
       FROM orders o
       WHERE o.status != 'cancelled'
-      AND o.created_at >= NOW() - INTERVAL '6 months'
+        AND o.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
       GROUP BY month
       ORDER BY month
-    `)
-    return result.rows
-  },
-}
+    `, { type: QueryTypes.SELECT });
 
-module.exports = DashboardModel
+    return results;
+  },
+};
+
+module.exports = DashboardModel;

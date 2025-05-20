@@ -1,8 +1,8 @@
 const express = require("express")
 const router = express.Router()
-const ProductController = require("../controllers/product.controller")
-const { authenticateToken } = require("../config/jwt")
-const { upload } = require("../config/upload")
+const ProductController = require("../controllers/product.controller.js")
+const { authenticateToken } = require("../config/jwt.js")
+const { upload } = require("../config/upload.js")
 
 router.post("/products", authenticateToken, upload.single("image"), ProductController.addProduct)
 

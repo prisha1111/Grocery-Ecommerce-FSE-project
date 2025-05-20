@@ -1,7 +1,7 @@
 const express = require("express")
 const router = express.Router()
-const OrderController = require("../controllers/order.controller")
-const { authenticateToken } = require("../config/jwt")
+const OrderController = require("../controllers/order.controller.js")
+const { authenticateToken } = require("../config/jwt.js")
 
 router.post("/orders", authenticateToken, OrderController.createOrder)
 

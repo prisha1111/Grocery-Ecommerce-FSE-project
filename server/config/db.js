@@ -1,21 +1,20 @@
-const { Client } = require("pg")
+const { Sequelize } = require('sequelize');
 
-const db = new Client({
-  host: "localhost",
-  user: "postgres",
-  port: 5432,
-  password: "12345prisha",
-  database: "Grochop",
-})
+const sequelize = new Sequelize('data', 'root', 'Ps@ini@123', {
+  host: 'localhost',
+  dialect: 'mysql',
+  port: 3306, // default MySQL port
+  logging: false, // optional: disable SQL logging
+});
 
 const connectDB = async () => {
   try {
-    await db.connect()
-    console.log("Connected to PostgreSQL database")
-  } catch (err) {
-    console.error("Database connection error:", err)
-    process.exit(1)
+    await sequelize.authenticate();
+    console.log('Connected to MySQL database');
+  } catch (error) {
+    console.error('Database connection error:', error);
+    process.exit(1);
   }
-}
+};
 
-module.exports = { db, connectDB }
+module.exports = { sequelize, connectDB };
